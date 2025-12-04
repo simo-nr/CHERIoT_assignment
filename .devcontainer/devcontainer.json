@@ -1,0 +1,24 @@
+{
+  "image": "registry.gitlab.kuleuven.be/distrinet/education/capita-selecta-secure-software/cheri/resources/cheriot",
+  "remoteUser": "cheriot",
+  "containerUser": "cheriot",
+  "runArgs": [
+    // "--userns=keep-id",
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+          "llvm-vs-code-extensions.vscode-clangd",
+          "tboox.xmake-vscode",
+          "hnw.vscode-auto-open-markdown-preview"
+      ],
+      "settings": {
+        "clangd.path": "/cheriot-tools/bin/clangd",
+        "xmake.compileCommandsDirectory": "${workspaceRoot}",
+        "xmake.additionalConfigArguments": [
+          "--sdk=/cheriot-tools/",
+        ]
+      }
+    }
+  }
+}
