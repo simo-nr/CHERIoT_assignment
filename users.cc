@@ -117,7 +117,10 @@ User *get_user_details(AccessToken provided_token)
 	const auto [token,user] = *token_ptr;
 	// return user;
 	CHERI::Capability<User> cap{user};
-	cap.bounds() = sizeof(User);
+
+	static_assert(offsetof(User, password) > 0);
+    cap.bounds() = offsetof(User, password);
+	
 	cap.without_permissions(CHERI::Permission::Store);
 	return cap.get();
 }
