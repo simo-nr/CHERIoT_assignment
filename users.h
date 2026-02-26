@@ -40,3 +40,8 @@ User __cheri_compartment("user") *get_user_details(AccessToken);
  */
 bool __cheri_compartment("user") is_username_available(const std::string username);
 
+bool __cheri_compartment("user") set_username(User *user, const std::string new_username);
+
+void __cheri_compartment("user") set_fullname(User *user, const std::string firstname, const std::string lastname);
+
+bool __cheri_compartment("user") set_password(User *user, const std::string old_password, const std::string new_password);

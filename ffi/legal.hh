@@ -55,11 +55,12 @@ namespace {
         auto *user = get_current_user_details();
         
 		if (user == nullptr) return false;
-        if (new_username == user->username) return true;
-        if (!is_username_available(new_username)) return false;
+        // if (new_username == user->username) return true;
+        // if (!is_username_available(new_username)) return false;
 
-        user->username = new_username;
-        return true;
+        // user->username = new_username;
+        // return true;
+		return set_username(user, new_username);
     }
 
 	/**
@@ -69,8 +70,9 @@ namespace {
 	{
 		auto *user = get_current_user_details();
 		if (user == nullptr) return;
-		user->firstname = firstname;
-		user->lastname = lastname;
+		// user->firstname = firstname;
+		// user->lastname = lastname;
+		set_fullname(user, firstname, lastname);
 	}
 
 	/**
