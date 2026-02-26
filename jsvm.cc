@@ -68,3 +68,22 @@ int run_js_bytecode(const uint8_t *bytecode, size_t bytecode_len)
 
 	return 0;
 }
+
+extern "C" ErrorRecoveryBehaviour
+compartment_error_handler(ErrorState *frame, size_t mcause, size_t mtval)
+{
+	(void)frame;
+
+	// 0x1c is the CHERI exception cause (CHERIoT book), mtval encodes more info.  [oai_citation:1‡CHERIoT Platform](https://cheriot.org/book/compartments.html?utm_source=chatgpt.com)
+	Debug::log("JS VM fault: mcause=0x{:x}, mtval=0x{:x}", mcause, mtval);
+
+	if (mcause == 0x1c)
+	{
+		auto [cause, reg] = CHERI::extract_cheri_mtval(static_cast<uint32_t>(mtval));
+		Debug::log("CHERI fault details: cause={}, reg={}", cause, reg);
+	}
+
+	// Tell the switcher to unwind out of this compartment instead of resuming.
+	// ForceUnwind is the behaviour for unwinding on error.  [oai_citation:2‡GitHub](https://github.com/microsoft/cheriot-rtos/blob/main/sdk/core/switcher/entry.S?utm_source=chatgpt.com)
+	return ErrorRecoveryBehaviour::ForceUnwind;
+}
