@@ -1,7 +1,7 @@
 #pragma once
 #include "cdefs.h"
 #include <stdint.h>
-#include <string>
+// #include <string>
 #include <compartment.h>
 
 // Execute JavaScript bytecode using the Microvium VM.
