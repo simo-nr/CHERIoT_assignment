@@ -19,12 +19,17 @@ option("board")
 
 compartment("main")
     add_files("main.cc")
+    add_deps("user")
+
+compartment("user")
     add_files("users.cc")
+    
 
 -- Firmware image for the example.
 firmware("javascript")
     add_deps("crt", "freestanding", "string", "microvium", "atomic_fixed")
     add_deps("main")
+    add_deps("user")
     add_deps("debug")
     on_load(function(target)
         target:values_set("board", "$(board)")
