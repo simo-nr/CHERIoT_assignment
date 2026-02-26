@@ -5,4 +5,4 @@
 #include <compartment.h>
 
 // Execute JavaScript bytecode using the Microvium VM.
-void __cheri_compartment("jsvm") run_js_bytecode(const uint8_t *bytecode, size_t bytecode_len);
+int __cheri_compartment("jsvm") run_js_bytecode(const uint8_t *bytecode, size_t bytecode_len);

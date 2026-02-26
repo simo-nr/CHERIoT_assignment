@@ -84,9 +84,12 @@ void __cheri_compartment("main") run()
 		// We've now read the bytecode into a buffer.  Spin up the JavaScript
 		// VM to execute it.
 		////////////////////////////////////////////////////////////////////////
-		
-		run_js_bytecode(bytecode.data(), bytecode.size());
-
+				
+		int rc = run_js_bytecode(bytecode.data(), bytecode.size());
+		if (rc < 0)
+		{
+			Debug::log("JavaScript VM aborted (fault or error), continuing main loop.");
+		}
 		// // Allocate the space for the VM capability registers on the stack and
 		// // record its location.
 		// // **Note**: This must be on the stack and in same compartment as the

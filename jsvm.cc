@@ -15,10 +15,9 @@
 #include "jsvm.h"
 
 using Debug = ConditionalDebug<true, "JSVM compartment">;
-// using CHERI::Capability;
 
 
-void run_js_bytecode(const uint8_t *bytecode, size_t bytecode_len)
+int run_js_bytecode(const uint8_t *bytecode, size_t bytecode_len)
 {
 	// Allocate the space for the VM capability registers on the stack and
 	// record its location.
@@ -41,8 +40,11 @@ void run_js_bytecode(const uint8_t *bytecode, size_t bytecode_len)
 			MALLOC_CAPABILITY, /* Capability used to allocate memory */
 			::resolve_import); /* Callback used to resolve FFI imports */
 		// If this is not valid bytecode, give up.
-		Debug::Assert(
-			err == MVM_E_SUCCESS, "Failed to parse bytecode: {}", err);
+		if (err != MVM_E_SUCCESS)
+		{
+			Debug::log("Failed to parse bytecode: {}", err);
+			return -1;
+		}
 		vm.reset(rawVm);
 	}
 
@@ -53,15 +55,16 @@ void run_js_bytecode(const uint8_t *bytecode, size_t bytecode_len)
 	if (err != MVM_E_SUCCESS)
 	{
 		Debug::log("Failed to get run function: {}", err);
+		return -1;
 	}
-	else
+	// Call the function:
+	err = mvm_call(vm.get(), run, nullptr, nullptr, 0);
+	// Check the exit status of `run`, report error if not success.
+	if (err != MVM_E_SUCCESS)
 	{
-		// Call the function:
-		err = mvm_call(vm.get(), run, nullptr, nullptr, 0);
-		// Check the exit status of `run`, report error if not success.
-		if (err != MVM_E_SUCCESS)
-		{
-			Debug::log("Failed to call run function: {}", err);
-		}
+		Debug::log("Failed to call run function: {}", err);
+		return -1;
 	}
+
+	return 0;
 }
