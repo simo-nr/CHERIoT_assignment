@@ -120,7 +120,7 @@ User *get_user_details(AccessToken provided_token)
 
 	static_assert(offsetof(User, password) > 0);
     cap.bounds() = offsetof(User, password);
-	
+
 	cap.without_permissions(CHERI::Permission::Store);
 	return cap.get();
 }
@@ -161,10 +161,9 @@ bool set_password(User *user, const std::string old_password, const std::string 
 	if (u == nullptr) {
 		return false;
 	}
-	// if (u->password != old_password) {
-	// 	return false;
-	// }
-	// u->password = new_password;
-	// return true;
-	return set_password(user, old_password, new_password);
+	if (u->password != old_password) {
+		return false;
+	}
+	u->password = new_password;
+	return true;
 }

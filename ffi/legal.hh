@@ -87,15 +87,16 @@ namespace {
 			FFIDebug::log("Password change failed because user was not found");
 			return false;
 		}
-		if (old_password != user->password){
-			FFIDebug::log(
-				"Password change failed for user {} because old password was incorrect!",
-				user->username);
-			return false;
-		}
+		// if (old_password != user->password){
+		// 	FFIDebug::log(
+		// 		"Password change failed for user {} because old password was incorrect!",
+		// 		user->username);
+		// 	return false;
+		// }
 		
-		user->password = new_password;
-		return true;
+		// user->password = new_password;
+		// return true;
+		return set_password(user, old_password, new_password);
 	}
 
 	template<>
