@@ -11,14 +11,15 @@
 #include <utility>
 #include <algorithm>
 
+#include <timeout.hh>
+#include <token.h>
+
 /// Expose debugging features unconditionally for this compartment.
 using Debug = ConditionalDebug<true, "User manager">;
 
-AccessToken allocate_access_token()
-{
-	static AccessToken last_allocated_token = 0;
-	return ++last_allocated_token;
-}
+static TokenKey g_token_key = nullptr;
+static int      g_last_allocated_token = 50;
+
 
 static std::vector<User> users;
 
@@ -64,6 +65,12 @@ static User *resolve_user_handle(User *handle)
 }
 
 void init_users(){
+
+	if (g_token_key == nullptr)
+	{
+		g_token_key = token_key_new();
+	}
+
 	users.reserve(4);
 	users.push_back({"Alice", "Cipher", "alice", "badpassword"});
 	users.push_back({"Bob", "Keyworth", "bob", "bobisasmarterpersonwhousesapassphrase"});
@@ -81,9 +88,9 @@ User *find_user(const std::string username) {
 	return &(*found_user);
 }
 
-static std::vector<std::pair<AccessToken,User*>> active_tokens;
+static std::vector<std::pair<int,User*>> active_tokens;
 
-std::vector<std::pair<AccessToken,User*>>::iterator find_active_token(AccessToken provided_token)
+static std::vector<std::pair<int,User*>>::iterator find_active_token(int provided_token)
 {
 	return std::find_if(
 		active_tokens.begin(), active_tokens.end(),
@@ -91,31 +98,86 @@ std::vector<std::pair<AccessToken,User*>>::iterator find_active_token(AccessToke
 	);
 }
 
+static int token_id_internal(AccessToken tok)
+{
+	if (tok == nullptr || g_token_key == nullptr)
+	{
+		return -1;
+	}
+	auto *unsealed = static_cast<AccessTokenObj *>(
+	  token_obj_unseal(g_token_key, static_cast<CHERI_SEALED(void *)>(tok)));
+	if (unsealed == nullptr)
+	{
+		return -1;
+	}
+	return unsealed->token;
+}
+
 AccessToken login(const std::string username, const std::string password)
 {
 	auto *user = find_user(username);
 	if (user != nullptr && user->password == password) {
-		AccessToken token = allocate_access_token();
-		active_tokens.push_back(std::make_pair(token, user));
-		Debug::log("User logged in with username {} and gave token {}", user->username, token);
-		return token;
+		void *unsealed_raw = nullptr;
+		auto sealed_void = token_sealed_unsealed_alloc(
+		  nullptr,
+		  MALLOC_CAPABILITY,
+		  g_token_key,
+		  sizeof(AccessTokenObj),
+		  &unsealed_raw);
+
+		if (sealed_void == nullptr || unsealed_raw == nullptr)
+		{
+			return nullptr;
+		}
+
+		auto *unsealed = static_cast<AccessTokenObj *>(unsealed_raw);
+		unsealed->token = ++g_last_allocated_token;
+
+		AccessToken tok = static_cast<CHERI_SEALED(AccessTokenObj *)>(sealed_void);
+		active_tokens.push_back(std::make_pair(unsealed->token, user));
+
+		Debug::log("User logged in with username {} and gave token {}",
+		           user->username,
+		           unsealed->token);
+		return tok;
 	}
-	Debug::log("Login failed for {}", user->username);
-	return -1;
+	if (user != nullptr)
+	{
+		Debug::log("Login failed for {}", user->username);
+	}
+	else
+	{
+		Debug::log("Login failed for unknown user {}", username);
+	}
+	return nullptr;
 }
 
 void logout(AccessToken provided_token)
 {
-	auto token_ptr = find_active_token(provided_token);
-	if (token_ptr != active_tokens.end()) active_tokens.erase(token_ptr);
+	if (provided_token == nullptr)
+	{
+		return;
+	}
+	int id = token_id_internal(provided_token);
+	if (id >= 0)
+	{
+		auto it = find_active_token(id);
+		if (it != active_tokens.end())
+		{
+			active_tokens.erase(it);
+		}
+	}
+
+	token_obj_destroy(MALLOC_CAPABILITY, g_token_key, static_cast<CHERI_SEALED(void *)>(provided_token));
 }
 
 User *get_user_details(AccessToken provided_token)
 {
-	auto token_ptr = find_active_token(provided_token);
-	if (token_ptr == active_tokens.end()) return nullptr;
-	const auto [token,user] = *token_ptr;
-	// return user;
+	int id = token_id_internal(provided_token);
+	if (id < 0) return nullptr;
+	auto it = find_active_token(id);
+	if (it == active_tokens.end()) return nullptr;
+	User *user = it->second;
 	CHERI::Capability<User> cap{user};
 
 	static_assert(offsetof(User, password) > 0);
@@ -123,6 +185,11 @@ User *get_user_details(AccessToken provided_token)
 
 	cap.without_permissions(CHERI::Permission::Store);
 	return cap.get();
+}
+
+int token_id(AccessToken tok)
+{
+	return token_id_internal(tok);
 }
 
 bool is_username_available(const std::string username) {

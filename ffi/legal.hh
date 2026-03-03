@@ -10,7 +10,7 @@ namespace {
 	bool export_login(const std::string username, const std::string password)
 	{
 		auto token = login(username, password);
-		if (token < 0) return false;
+		if (token == nullptr) return false;
 		state().current_token = token;
 		return true;
 	}
@@ -21,9 +21,9 @@ namespace {
 	 */
 	void export_logout()
 	{ 
-		if (state().current_token < 0) return;
+		if (state().current_token == nullptr) return;
 		logout(state().current_token);
-		state().current_token = -1;
+		state().current_token = nullptr;
 	};
 
 	/**

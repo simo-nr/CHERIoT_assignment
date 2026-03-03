@@ -10,7 +10,14 @@ typedef struct User {
 	std::string password;
 } User;
 
-typedef int AccessToken;
+struct AccessTokenObj
+{
+	int token;
+};
+
+/// The actual access token passed around is an unforgeable sealed capability.
+using AccessToken = CHERI_SEALED(AccessTokenObj *);
+
 
 /**
  * Initialize the user database in memory. Should be called once at the start
@@ -20,7 +27,7 @@ void __cheri_compartment("user") init_users(void);
 
 /**
  * Log in with the given username and password.
- * Returns an AccessToken if login is successful, and -1 otherwise.
+ * Returns an AccessToken if login is successful, and nullptr otherwise.
  */
 AccessToken __cheri_compartment("user") login(const std::string username, const std::string password);
 
@@ -34,6 +41,12 @@ void __cheri_compartment("user") logout(AccessToken);
  * Returns a pointer to a User struct if the token is valid, nullptr otherwise.
  */
 User __cheri_compartment("user") *get_user_details(AccessToken);
+
+/**
+ * Task 5 helper: return the (guessable) integer token id for debugging / exploit API.
+ * Returns -1 if token is invalid.
+ */
+int __cheri_compartment("user") token_id(AccessToken);
 
 /**
  * Returns true if the given username is not yet taken by another user.

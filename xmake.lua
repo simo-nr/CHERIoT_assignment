@@ -44,7 +44,7 @@ firmware("javascript")
                 priority = 1,
                 entry_point = "run",
                 stack_size = 0x800,
-                trusted_stack_frames = 4
+                trusted_stack_frames = 8
             }
         }, {expand = false})
     end)
